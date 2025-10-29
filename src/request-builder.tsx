@@ -35,7 +35,11 @@ type SystemObj = {
 
 export default function RequestBuilder({ contextResponse, workbook }: RequestBuilderProps) {
   interface ObjectWithArrays {
-    [key: string]: any;
+    [typeId: string]: {
+      [elementCodename: string]: {
+        [valueId: string]: string
+      }
+    }
   }
 
   interface OneContentTypeSelectedInfo {
@@ -48,8 +52,8 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
   const [apiKey, setAPIKey] = useState<string>('');
   const [apiKeyErrorText, setAPIKeyErrorText] = useState<string>('');
   const [environmentIdErrorText, setEnvironmentIdErrorText] = useState<string>('');
-  const [contentTypes, setContentTypes] = useState<Array<IContentType>>();
-  const [languages, setLanguages] = useState<Array<ILanguage>>();
+  const [contentTypes, setContentTypes] = useState<Array<IContentType<string>>>();
+  const [languages, setLanguages] = useState<Array<ILanguage<string>>>();
   const [loadingText, setLoadingText] = useState<string>('Checking custom app configuration...');
   const [exportBtnText, setExportBtnText] = useState<string>('Export content');
   const [backBtnText, setBackBtnText] = useState<string>('Change API key');
@@ -184,23 +188,23 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
         }
         // Multiple value inputs
         else if (filteringOperatorKeys!.filter(key => key.match(/^contains+/)).length > 0) {
-          if (elementInput.labels) {
-              let value;
-
-              if (filteringOperatorKeys!.includes(elementFilteringOperators[index].value) && filteringOperatorKeys![0] !== elementFilteringOperators[index].value) {
-                const elementCodename = elementInput.id.match(/-([a-zA-Z_]+)-/);
-
-                let possibleValues: string | any[] = [];
-
-                if (elementCodename && elementFilterInputValues[selectedTypes[0].id][elementCodename[1]]) possibleValues = Object.values(elementFilterInputValues[selectedTypes[0].id][elementCodename[1]]) as Array<string>;
-                if (possibleValues.length > 0) value = [...possibleValues];
-              }
-              else value = elementInput.value;
-
-              // Element type, filtering operator, element's codename, value to filter the element by
-              if (elementType && value) elementsToFilter.push([elementType[1], elementFilteringOperators[index].value, elementsToFilterLabels[index].id, value]);
+            if (elementInput.labels) {
+                let value;
+  
+                if (filteringOperatorKeys!.includes(elementFilteringOperators[index].value) && filteringOperatorKeys![0] !== elementFilteringOperators[index].value) {
+                  const elementCodename = elementInput.id.match(/-([a-zA-Z_]+)-/);
+  
+                  let possibleValues: string[] = [];
+  
+                  if (elementCodename && elementFilterInputValues[selectedTypes[0].id][elementCodename[1]]) possibleValues = Object.values(elementFilterInputValues[selectedTypes[0].id][elementCodename[1]]) as Array<string>;
+                  if (possibleValues.length > 0) value = [...possibleValues];
+                }
+                else value = elementInput.value;
+  
+                // Element type, filtering operator, element's codename, value to filter the element by
+                if (elementType && value) elementsToFilter.push([elementType[1], elementFilteringOperators[index].value, elementsToFilterLabels[index].id, value]);
+            }
           }
-        }
       })
 
       const selectedLastModifiedOperator = document.getElementById('last-modified-filtering-operator') as HTMLSelectElement;
@@ -1140,7 +1144,7 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                                         <input id={`${type.system.codename}-${element.codename}-input`} type='text' className='basis-full type-filters mb-1.5' onKeyDownCapture={(e) => { if (e.key === 'Enter') handleEnterPress(e); }} />
                                       :
                                       <div className='basis-full flex flex-wrap num-filter-container'>
-                                        <input id={`${type.system.codename}-${element.codename}-input`} ref={createRef} type={element.type === 'date_time' ? 'date' : 'number'} className={`basis-full type-filters mb-1.5`} onKeyDownCapture={(e) => { if (e.key === 'Enter') handleEnterPress(e); }} />
+                                        <input id={`${type.system.codename}-${element.codename}-input`} ref={createRef<HTMLInputElement>()} type={element.type === 'date_time' ? 'date' : 'number'} className={`basis-full type-filters mb-1.5`} onKeyDownCapture={(e) => { if (e.key === 'Enter') handleEnterPress(e); }} />
                                         <div id={`${type.system.codename}-${element.codename}-range-container`} className='basis-full hidden flex-wrap'>
                                           <p className='basis-full text-left mb-1.5 py-[0.25rem] px-[0.5rem] text-[14px]'>and</p>
                                           <input id={`${element.codename}-range`}  type={element.type === 'date_time' ? 'date' : 'number'} className='basis-full type-filters mb-3' />

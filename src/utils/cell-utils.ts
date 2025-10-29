@@ -1,5 +1,5 @@
 // Excel cell text limit is 32767 characters. Provide helpers to sanitize cell values.
-export function truncateCellText(value: any, max = 32767): any {
+export function truncateCellText(value: unknown, max = 32767): unknown {
   // Add a suffix that indicates original length when truncating.
   // Suffix example: "... [TRUNCATED from N chars]"
   const makeSuffix = (origLen: number) => `... [TRUNCATED from ${origLen} chars]`;
@@ -33,10 +33,10 @@ export function truncateCellText(value: any, max = 32767): any {
   return value;
 }
 
-export function sanitizeRowValues(row: any[], max = 32767): any[] {
+export function sanitizeRowValues(row: unknown[], max = 32767): unknown[] {
   return row.map(cell => truncateCellText(cell, max));
 }
 
-export function sanitizeRows(rows: any[], max = 32767): any[] {
-  return rows.map((row) => Array.isArray(row) ? sanitizeRowValues(row, max) : row);
+export function sanitizeRows(rows: unknown[], max = 32767): unknown[] {
+  return rows.map((row) => Array.isArray(row) ? sanitizeRowValues(row as unknown[], max) : row);
 }

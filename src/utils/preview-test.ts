@@ -2,7 +2,7 @@ import createDeliveryClientContainer from './delivery-client';
 import { DeliveryError } from '@kontent-ai/delivery-sdk';
 
 export default async function previewTest(environmentId: string, apiKey: string) {
-  let deliveryClient = await createDeliveryClientContainer(environmentId, apiKey);
+  const deliveryClient = await createDeliveryClientContainer(environmentId, apiKey);
 
   try {
     const query = deliveryClient.items()

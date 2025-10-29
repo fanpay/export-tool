@@ -11,10 +11,10 @@ type FilterMethod = (
   element: string,
   value: string | Array<string>,
   secondValue?: string | Array<string>
-) => MultipleItemsQuery;
+) => MultipleItemsQuery<any, any>;
 
 export default async function fetchItems(environmentId: string, apiKey: string, types: Array<string>, language: string, workflowStep: string, lastModified?: LastModified, itemName?: string, collection?: string, elementsToFilter?: (string | string[])[][] | undefined) {
-  let deliveryClient = createDeliveryClientContainer(environmentId, apiKey);
+  const deliveryClient = createDeliveryClientContainer(environmentId, apiKey);
 
   let query = deliveryClient.items()
     .orderByAscending('system.type')
@@ -58,12 +58,12 @@ export default async function fetchItems(environmentId: string, apiKey: string, 
     }
   }
 
-  let response = await query.toPromise();
+  const response = await query.toPromise();
 
   type APIResponseType = typeof response;
 
-  async function fetchWithPagination(query: MultipleItemsQuery, res: APIResponseType, nextPage: string) {
-    let previousResponse: APIResponseType = {...res};
+  async function fetchWithPagination(query: MultipleItemsQuery<any, any>, res: APIResponseType, nextPage: string) {
+    const previousResponse: APIResponseType = {...res};
     const newResponse = await query
       .withCustomUrl(nextPage)
       .toPromise();
