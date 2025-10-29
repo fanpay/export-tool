@@ -311,6 +311,7 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
             let currentWorksheet;
             let currentItems = [];
     
+    
             for (let i = 0; i < data.items.length; i++) {
               // Standard item processing
               if (data.items[i].system.type === currentType && i !== data.items.length - 1) {
@@ -328,26 +329,34 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 }
                 else currentItems.push(itemsValues[i]);
 
-                let currentKeys;
-
-                if (selectedAdditionalData) currentKeys = [...selectedAdditionalData];
+                if (selectedAdditionalData) {
+                  // legacy variable removed; header keys are now computed directly below
+                }
     
-                // Some of the below logic comes from: https://stackoverflow.com/a/64213063
-                if (items.length > 1 && selectedAdditionalData) currentKeys = [selectedAdditionalData.concat(items[i - 1].map(obj => Object.entries(obj)[0][0]))];
-                else if (items.length > 1) currentKeys = [items[i - 1].map(obj => Object.entries(obj)[0][0])];
-                else currentKeys = [items[i].map(obj => Object.entries(obj)[0][0])];
+                // header keys are computed below using element codenames and selectedAdditionalData
 
                 currentWorksheet = XLSX.utils.book_new();
 
-                XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
-                // convert rows (arrays) to objects keyed by header labels and sanitize
+                // Build header display (what goes into the sheet) and header keys (object keys)
                 {
-                  const headerArray = Array.isArray(currentKeys) && currentKeys.length > 0 ? currentKeys[0] as string[] : [];
+                  const chooseIndex = (items.length > 1) ? i - 1 : i;
+                  const elementEntries = Object.entries(data.items[chooseIndex].elements);
+                  const elemNames = elementEntries.map(e => e[1].name);
+                  const elemCodenames = elementEntries.map(e => (e[1] as any).codename);
+                  const headerDisplay = selectedAdditionalData && selectedAdditionalData.length > 0 ? [...selectedAdditionalData, ...elemNames] : elemNames;
+                  const headerKeys = selectedAdditionalData && selectedAdditionalData.length > 0 ? [...selectedAdditionalData, ...elemCodenames] : elemCodenames;
+
+                  XLSX.utils.sheet_add_aoa(currentWorksheet, [headerDisplay]);
+
                   const rowsAsObjects = currentItems.map((row: unknown[]) => {
                     const obj: Record<string, unknown> = {};
-                    headerArray.forEach((h, idx) => { obj[h] = row[idx] !== undefined ? row[idx] : ''; });
+                    for (let idx = 0; idx < headerKeys.length; idx++) {
+                      const key = headerKeys[idx];
+                      obj[key] = row[idx] ?? '';
+                    }
                     return sanitizeObjectRow(obj);
                   });
+
                   XLSX.utils.sheet_add_json(currentWorksheet, rowsAsObjects, { origin: 'A2', skipHeader: true });
                 }
     
