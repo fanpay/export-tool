@@ -2,6 +2,7 @@ import { CustomAppContext } from '@kontent-ai/custom-app-sdk';
 import { createRef, FormEvent, useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { normalizeSheetName } from './utils/sheet-name';
+import { sanitizeRows } from './utils/cell-utils';
 import JSZip from 'jszip';
 import fetchItems from './utils/fetch-items';
 import fetchTypes from './utils/fetch-types';
@@ -335,7 +336,8 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 currentWorksheet = XLSX.utils.book_new();
 
                 XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
-                XLSX.utils.sheet_add_json(currentWorksheet, currentItems, { origin: 'A2', skipHeader: true });
+                // sanitize rows to avoid Excel cell text length limit (32767 chars)
+                XLSX.utils.sheet_add_json(currentWorksheet, sanitizeRows(currentItems), { origin: 'A2', skipHeader: true });
     
                 if (currentWorksheet) {
                   const sheetName = normalizeSheetName(currentType, workbook);
@@ -352,7 +354,8 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 currentWorksheet = XLSX.utils.book_new();
     
                 XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
-                XLSX.utils.sheet_add_json(currentWorksheet, currentItems, { origin: 'A2', skipHeader: true });
+                // sanitize rows to avoid Excel cell text length limit (32767 chars)
+                XLSX.utils.sheet_add_json(currentWorksheet, sanitizeRows(currentItems), { origin: 'A2', skipHeader: true });
     
                 if (currentWorksheet) {
                   const sheetName = normalizeSheetName(currentType, workbook);
@@ -374,7 +377,8 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 currentWorksheet = XLSX.utils.book_new();
     
                 XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
-                XLSX.utils.sheet_add_json(currentWorksheet, currentItems, { origin: 'A2', skipHeader: true });
+                // sanitize rows to avoid Excel cell text length limit (32767 chars)
+                XLSX.utils.sheet_add_json(currentWorksheet, sanitizeRows(currentItems), { origin: 'A2', skipHeader: true });
     
                 if (currentWorksheet) {
                   const sheetName = normalizeSheetName(data.items[i].system.type, workbook);
@@ -391,7 +395,8 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 currentWorksheet = XLSX.utils.book_new();
     
                 XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
-                XLSX.utils.sheet_add_json(currentWorksheet, currentItems, { origin: 'A2', skipHeader: true });
+                // sanitize rows to avoid Excel cell text length limit (32767 chars)
+                XLSX.utils.sheet_add_json(currentWorksheet, sanitizeRows(currentItems), { origin: 'A2', skipHeader: true });
     
                 if (currentWorksheet) {
                   const sheetName = normalizeSheetName(currentType, workbook);
