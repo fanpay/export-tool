@@ -343,43 +343,6 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                   const elementEntries = Object.entries(data.items[chooseIndex].elements);
                   const elemNames = elementEntries.map(e => e[1].name);
                   const elemCodenames = elementEntries.map(e => (e[1] as any).codename);
-                  const headerDisplay = selectedAdditionalData && selectedAdditionalData.length > 0 ? [...selectedAdditionalData, ...elemNames] : elemNames;
-                  const headerKeys = selectedAdditionalData && selectedAdditionalData.length > 0 ? [...selectedAdditionalData, ...elemCodenames] : elemCodenames;
-
-                  XLSX.utils.sheet_add_aoa(currentWorksheet, [headerDisplay]);
-
-                  const rowsAsObjects = currentItems.map((row: unknown[]) => {
-                    const obj: Record<string, unknown> = {};
-                    for (let idx = 0; idx < headerKeys.length; idx++) {
-                      const key = headerKeys[idx];
-                      obj[key] = row[idx] ?? '';
-                    }
-                    return sanitizeObjectRow(obj);
-                  });
-
-                  XLSX.utils.sheet_add_json(currentWorksheet, rowsAsObjects, { origin: 'A2', skipHeader: true });
-                }
-    
-                if (currentWorksheet) {
-                  const sheetName = normalizeSheetName(currentType, workbook);
-                  XLSX.utils.book_append_sheet(workbook, currentWorksheet, sheetName);
-                }
-              }
-              // The final item is the only of its type
-              else if (data.items[i].system.type !== currentType && i === data.items.length - 1) {
-                let currentKeys;
-
-                if (selectedAdditionalData) currentKeys = [selectedAdditionalData.concat(items[i - 1].map(obj => Object.entries(obj)[0][0]))];
-                else currentKeys = [items[i - 1].map(obj => Object.entries(obj)[0][0])];
-
-                currentWorksheet = XLSX.utils.book_new();
-
-                // Build header display (what goes into the sheet) and header keys (object keys)
-                {
-                  const chooseIndex = (items.length > 1) ? i - 1 : i;
-                  const elementEntries = Object.entries(data.items[chooseIndex].elements);
-                  const elemNames = elementEntries.map(e => e[1].name);
-                  const elemCodenames = elementEntries.map(e => (e[1] as any).codename);
                   let headerDisplay = selectedAdditionalData && selectedAdditionalData.length > 0 ? [...selectedAdditionalData, ...elemNames] : elemNames;
                   let headerKeys = selectedAdditionalData && selectedAdditionalData.length > 0 ? [...selectedAdditionalData, ...elemCodenames] : elemCodenames;
 
@@ -400,14 +363,11 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                         obj[key] = itemsSystemData[startIdx + rowIdx].codename ?? '';
                       }
                       else if (selectedAdditionalData && selectedAdditionalData.includes(key)) {
-                        // value is located in the row at the position of the additional data
                         const addIdx = selectedAdditionalData.indexOf(key);
-                        obj[key] = row[addIdx] !== undefined ? row[addIdx] : '';
+                        obj[key] = row[addIdx] ?? '';
                       }
                       else {
-                        // element values follow the additional-data columns
                         const elemOffset = (selectedAdditionalData && selectedAdditionalData.length > 0) ? selectedAdditionalData.length : 0;
-                        // compute element index inside the elements portion of the row
                         const hasInsertedCodename = headerKeys[0] === 'codename' && !(selectedAdditionalData && selectedAdditionalData.includes('codename'));
                         const elemIndex = idx - elemOffset - (hasInsertedCodename ? 1 : 0);
                         const valueIndex = elemIndex >= 0 ? elemIndex : idx - elemOffset;
@@ -420,6 +380,61 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                   XLSX.utils.sheet_add_json(currentWorksheet, rowsAsObjects, { origin: 'A2', skipHeader: true });
                 }
     
+                if (currentWorksheet) {
+                  const sheetName = normalizeSheetName(currentType, workbook);
+                  XLSX.utils.book_append_sheet(workbook, currentWorksheet, sheetName);
+                }
+              }
+              // The final item is the only of its type
+              else if (data.items[i].system.type !== currentType && i === data.items.length - 1) {
+                let currentKeys;
+
+                currentWorksheet = XLSX.utils.book_new();
+
+                // Build header display (what goes into the sheet) and header keys (object keys)
+                {
+                  const chooseIndex = (items.length > 1) ? i - 1 : i;
+                  const elementEntries = Object.entries(data.items[chooseIndex].elements);
+                  const elemNames = elementEntries.map(e => e[1].name);
+                  const elemCodenames = elementEntries.map(e => (e[1] as any).codename);
+                  let headerDisplay = selectedAdditionalData && selectedAdditionalData.length > 0 ? [...selectedAdditionalData, ...elemNames] : elemNames;
+                  let headerKeys = selectedAdditionalData && selectedAdditionalData.length > 0 ? [...selectedAdditionalData, ...elemCodenames] : elemCodenames;
+
+                  // Ensure codename column exists
+                  if (!headerKeys.includes('codename')) {
+                    headerKeys = ['codename', ...headerKeys];
+                    headerDisplay = ['Codename', ...headerDisplay];
+                  }
+
+                  XLSX.utils.sheet_add_aoa(currentWorksheet, [headerDisplay]);
+
+                  // currentItems here correspond to the previous group which ends at index i - 1
+                  const startIdx = i - currentItems.length;
+                  const rowsAsObjects = currentItems.map((row: unknown[], rowIdx: number) => {
+                    const obj: Record<string, unknown> = {};
+                    for (let idx = 0; idx < headerKeys.length; idx++) {
+                      const key = headerKeys[idx];
+                      if (key === 'codename' && !(selectedAdditionalData && selectedAdditionalData.includes('codename'))) {
+                        obj[key] = itemsSystemData[startIdx + rowIdx].codename ?? '';
+                      }
+                      else if (selectedAdditionalData && selectedAdditionalData.includes(key)) {
+                        const addIdx = selectedAdditionalData.indexOf(key);
+                        obj[key] = row[addIdx] ?? '';
+                      }
+                      else {
+                        const elemOffset = (selectedAdditionalData && selectedAdditionalData.length > 0) ? selectedAdditionalData.length : 0;
+                        const hasInsertedCodename = headerKeys[0] === 'codename' && !(selectedAdditionalData && selectedAdditionalData.includes('codename'));
+                        const elemIndex = idx - elemOffset - (hasInsertedCodename ? 1 : 0);
+                        const valueIndex = elemIndex >= 0 ? elemIndex : idx - elemOffset;
+                        obj[key] = row[valueIndex] ?? '';
+                      }
+                    }
+                    return sanitizeObjectRow(obj);
+                  });
+
+                  XLSX.utils.sheet_add_json(currentWorksheet, rowsAsObjects, { origin: 'A2', skipHeader: true });
+                }
+
                 if (currentWorksheet) {
                   const sheetName = normalizeSheetName(currentType, workbook);
                   XLSX.utils.book_append_sheet(workbook, currentWorksheet, sheetName);
