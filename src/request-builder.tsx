@@ -509,6 +509,63 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
             }
 
             if (selectedFileType === 'excel') {
+              // Build an index of codename -> sheet & cell address for internal linking
+              try {
+                const codenameIndex = new Map<string, { sheetName: string; addr: string }>();
+
+                for (const sheetName of workbook.SheetNames) {
+                  const ws = workbook.Sheets[sheetName];
+                  if (!ws || !ws['!ref']) continue;
+                  const range = XLSX.utils.decode_range(ws['!ref']);
+                  // find Codename column (header row assumed at row 1)
+                  let codenameCol = -1;
+                  for (let c = range.s.c; c <= range.e.c; c++) {
+                    const headerAddr = XLSX.utils.encode_cell({ c, r: 0 });
+                    const headerCell = ws[headerAddr];
+                    const headerVal = headerCell && headerCell.v ? String(headerCell.v).trim() : '';
+                    if (headerVal === 'Codename' || headerVal === 'codename') {
+                      codenameCol = c;
+                      break;
+                    }
+                  }
+
+                  if (codenameCol === -1) continue;
+
+                  for (let r = range.s.r + 1; r <= range.e.r; r++) {
+                    const addr = XLSX.utils.encode_cell({ c: codenameCol, r });
+                    const cell = ws[addr];
+                    const v = cell && cell.v ? String(cell.v).trim() : '';
+                    if (v) codenameIndex.set(v, { sheetName, addr });
+                  }
+                }
+
+                // Now insert internal hyperlinks for any cell whose text matches a known codename
+                for (const sheetName of workbook.SheetNames) {
+                  const ws = workbook.Sheets[sheetName];
+                  if (!ws || !ws['!ref']) continue;
+                  const range = XLSX.utils.decode_range(ws['!ref']);
+
+                  for (let r = range.s.r + 1; r <= range.e.r; r++) {
+                    for (let c = range.s.c; c <= range.e.c; c++) {
+                      const addr = XLSX.utils.encode_cell({ c, r });
+                      const cell = ws[addr];
+                      if (!cell || !cell.v) continue;
+                      const text = String(cell.v).trim();
+                      const target = codenameIndex.get(text);
+                      if (target && target.sheetName !== sheetName) {
+                        const safeSheet = target.sheetName.includes(' ') ? `'${target.sheetName}'` : target.sheetName;
+                        // internal hyperlink target must start with '#'
+                        cell.l = { Target: `#${safeSheet}!${target.addr}`, Tooltip: `Go to ${target.sheetName}` } as any;
+                      }
+                    }
+                  }
+                }
+              }
+              catch (e) {
+                // Non-fatal: linking failed; proceed with file write
+                console.warn('Failed to build codename links', e);
+              }
+
               XLSX.writeFile(workbook, `${environmentId}-export.xlsx`);
             }
             else {
