@@ -373,16 +373,50 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 else currentKeys = [items[i - 1].map(obj => Object.entries(obj)[0][0])];
 
                 currentWorksheet = XLSX.utils.book_new();
-    
-                XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
-                // convert rows (arrays) to objects keyed by header labels and sanitize
+
+                // Build header display (what goes into the sheet) and header keys (object keys)
                 {
-                  const headerArray = Array.isArray(currentKeys) && currentKeys.length > 0 ? currentKeys[0] as string[] : [];
-                  const rowsAsObjects = currentItems.map((row: unknown[]) => {
+                  const chooseIndex = (items.length > 1) ? i - 1 : i;
+                  const elementEntries = Object.entries(data.items[chooseIndex].elements);
+                  const elemNames = elementEntries.map(e => e[1].name);
+                  const elemCodenames = elementEntries.map(e => (e[1] as any).codename);
+                  let headerDisplay = selectedAdditionalData && selectedAdditionalData.length > 0 ? [...selectedAdditionalData, ...elemNames] : elemNames;
+                  let headerKeys = selectedAdditionalData && selectedAdditionalData.length > 0 ? [...selectedAdditionalData, ...elemCodenames] : elemCodenames;
+
+                  // Ensure codename column exists
+                  if (!headerKeys.includes('codename')) {
+                    headerKeys = ['codename', ...headerKeys];
+                    headerDisplay = ['Codename', ...headerDisplay];
+                  }
+
+                  XLSX.utils.sheet_add_aoa(currentWorksheet, [headerDisplay]);
+
+                  const startIdx = i - currentItems.length + 1;
+                  const rowsAsObjects = currentItems.map((row: unknown[], rowIdx: number) => {
                     const obj: Record<string, unknown> = {};
-                    headerArray.forEach((h, idx) => { obj[h] = row[idx] !== undefined ? row[idx] : ''; });
+                    for (let idx = 0; idx < headerKeys.length; idx++) {
+                      const key = headerKeys[idx];
+                      if (key === 'codename' && !(selectedAdditionalData && selectedAdditionalData.includes('codename'))) {
+                        obj[key] = itemsSystemData[startIdx + rowIdx].codename ?? '';
+                      }
+                      else if (selectedAdditionalData && selectedAdditionalData.includes(key)) {
+                        // value is located in the row at the position of the additional data
+                        const addIdx = selectedAdditionalData.indexOf(key);
+                        obj[key] = row[addIdx] !== undefined ? row[addIdx] : '';
+                      }
+                      else {
+                        // element values follow the additional-data columns
+                        const elemOffset = (selectedAdditionalData && selectedAdditionalData.length > 0) ? selectedAdditionalData.length : 0;
+                        // compute element index inside the elements portion of the row
+                        const hasInsertedCodename = headerKeys[0] === 'codename' && !(selectedAdditionalData && selectedAdditionalData.includes('codename'));
+                        const elemIndex = idx - elemOffset - (hasInsertedCodename ? 1 : 0);
+                        const valueIndex = elemIndex >= 0 ? elemIndex : idx - elemOffset;
+                        obj[key] = row[valueIndex] ?? '';
+                      }
+                    }
                     return sanitizeObjectRow(obj);
                   });
+
                   XLSX.utils.sheet_add_json(currentWorksheet, rowsAsObjects, { origin: 'A2', skipHeader: true });
                 }
     
