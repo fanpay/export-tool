@@ -1,6 +1,7 @@
 import { CustomAppContext } from '@kontent-ai/custom-app-sdk';
 import { createRef, FormEvent, useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
+import { normalizeSheetName } from './utils/sheet-name';
 import JSZip from 'jszip';
 import fetchItems from './utils/fetch-items';
 import fetchTypes from './utils/fetch-types';
@@ -55,6 +56,8 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
   const [validConfigAPIKey, setValidConfigAPIKey] = useState<boolean>(false);
   const [elementFilterInputValues, setElementFilterInputValues] = useState<ObjectWithArrays>({});
   const [oneContentTypeSelected, setOneContentTypeSelected] = useState<OneContentTypeSelectedInfo>({ boolean: false, initialLoad: true });
+
+  
 
   async function handleSubmit(event: FormEvent, type: string) {
     event.preventDefault();
@@ -129,7 +132,7 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
       const itemName = (document.getElementById('filter-item-name') as HTMLInputElement).value.trim();
       const collection = (document.getElementById('collection-filter') as HTMLInputElement).value.trim();
 
-      let elementsToFilter: (string | string[])[][] | undefined = [];
+      const elementsToFilter: (string | string[])[][] | undefined = [];
 
       const elementsToFilterInputs = document.querySelectorAll('div[style*="display: flex"] > .type-filters-container > input, div[style*="display: flex"] > .type-filters-container > div.num-filter-container > input') as NodeListOf<HTMLInputElement>;
       const elementsToFilterLabels = document.querySelectorAll('div[style*="display: flex"] > .type-filters-container > label') as NodeListOf<HTMLInputElement>;
@@ -200,7 +203,7 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
       })
 
       const selectedLastModifiedOperator = document.getElementById('last-modified-filtering-operator') as HTMLSelectElement;
-      let lastModified = [];
+      const lastModified = [];
 
       // Setting lastModified value
       if (selectedLastModifiedOperator) {
@@ -286,7 +289,7 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
             if (noItemsError) noItemsError.style.display = 'none';
 
             const selectedAdditionalDataInputs = document.querySelectorAll('.additional-data-options:checked');
-            let selectedAdditionalData: Array<string> = [];
+            const selectedAdditionalData: Array<string> = [];
 
             if (selectedAdditionalDataInputs) {
               for (const node of selectedAdditionalDataInputs.values()) {
@@ -334,7 +337,10 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
                 XLSX.utils.sheet_add_json(currentWorksheet, currentItems, { origin: 'A2', skipHeader: true });
     
-                if (currentWorksheet) XLSX.utils.book_append_sheet(workbook, currentWorksheet, currentType);
+                if (currentWorksheet) {
+                  const sheetName = normalizeSheetName(currentType, workbook);
+                  XLSX.utils.book_append_sheet(workbook, currentWorksheet, sheetName);
+                }
               }
               // The final item is the only of its type
               else if (data.items[i].system.type !== currentType && i === data.items.length - 1) {
@@ -348,7 +354,10 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
                 XLSX.utils.sheet_add_json(currentWorksheet, currentItems, { origin: 'A2', skipHeader: true });
     
-                if (currentWorksheet) XLSX.utils.book_append_sheet(workbook, currentWorksheet, currentType);
+                if (currentWorksheet) {
+                  const sheetName = normalizeSheetName(currentType, workbook);
+                  XLSX.utils.book_append_sheet(workbook, currentWorksheet, sheetName);
+                }
 
                 // Now handling the final item/type
                 currentItems = [];
@@ -367,7 +376,10 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
                 XLSX.utils.sheet_add_json(currentWorksheet, currentItems, { origin: 'A2', skipHeader: true });
     
-                if (currentWorksheet) XLSX.utils.book_append_sheet(workbook, currentWorksheet, data.items[i].system.type);
+                if (currentWorksheet) {
+                  const sheetName = normalizeSheetName(data.items[i].system.type, workbook);
+                  XLSX.utils.book_append_sheet(workbook, currentWorksheet, sheetName);
+                }
               }
               // The item is the last of its type, but isn't the only one, and isn't the final item
               else {
@@ -381,7 +393,10 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
                 XLSX.utils.sheet_add_json(currentWorksheet, currentItems, { origin: 'A2', skipHeader: true });
     
-                if (currentWorksheet) XLSX.utils.book_append_sheet(workbook, currentWorksheet, currentType);
+                if (currentWorksheet) {
+                  const sheetName = normalizeSheetName(currentType, workbook);
+                  XLSX.utils.book_append_sheet(workbook, currentWorksheet, sheetName);
+                }
     
                 currentItems = [];
                 currentType = data.items[i].system.type;
@@ -598,7 +613,7 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
         const elementCodename = valueSpan.id.match(/-([a-zA-Z_]+)-/);
 
         if (elementCodename) {
-          let currentValues = {...elementFilterInputValues[selectedTypes[0].id][elementCodename[1]]};
+          const currentValues = {...elementFilterInputValues[selectedTypes[0].id][elementCodename[1]]};
           delete currentValues[valueSpan.id];
 
           setElementFilterInputValues({
@@ -1117,10 +1132,10 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                                     </div>
                                     {
                                       element.type !== 'date_time' && element.type !== 'number' ?
-                                        <input id={`${type.system.codename}-${element.codename}-input`} type='text' className='basis-full type-filters mb-1.5' onKeyDownCapture={(e) => { e.key === 'Enter' ? handleEnterPress(e) : null }} />
+                                        <input id={`${type.system.codename}-${element.codename}-input`} type='text' className='basis-full type-filters mb-1.5' onKeyDownCapture={(e) => { if (e.key === 'Enter') handleEnterPress(e); }} />
                                       :
                                       <div className='basis-full flex flex-wrap num-filter-container'>
-                                        <input id={`${type.system.codename}-${element.codename}-input`} ref={createRef} type={element.type === 'date_time' ? 'date' : 'number'} className={`basis-full type-filters mb-1.5`} onKeyDownCapture={(e) => { e.key === 'Enter' ? handleEnterPress(e) : null }} />
+                                        <input id={`${type.system.codename}-${element.codename}-input`} ref={createRef} type={element.type === 'date_time' ? 'date' : 'number'} className={`basis-full type-filters mb-1.5`} onKeyDownCapture={(e) => { if (e.key === 'Enter') handleEnterPress(e); }} />
                                         <div id={`${type.system.codename}-${element.codename}-range-container`} className='basis-full hidden flex-wrap'>
                                           <p className='basis-full text-left mb-1.5 py-[0.25rem] px-[0.5rem] text-[14px]'>and</p>
                                           <input id={`${element.codename}-range`}  type={element.type === 'date_time' ? 'date' : 'number'} className='basis-full type-filters mb-3' />
