@@ -40,3 +40,11 @@ export function sanitizeRowValues(row: unknown[], max = 32767): unknown[] {
 export function sanitizeRows(rows: unknown[], max = 32767): unknown[] {
   return rows.map((row) => Array.isArray(row) ? sanitizeRowValues(row as unknown[], max) : row);
 }
+
+export function sanitizeObjectRow(obj: Record<string, unknown>, max = 32767): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = truncateCellText(v as any, max);
+  }
+  return out;
+}

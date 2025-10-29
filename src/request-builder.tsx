@@ -2,7 +2,7 @@ import { CustomAppContext } from '@kontent-ai/custom-app-sdk';
 import { createRef, FormEvent, useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { normalizeSheetName } from './utils/sheet-name';
-import { sanitizeRows } from './utils/cell-utils';
+import { sanitizeObjectRow } from './utils/cell-utils';
 import JSZip from 'jszip';
 import fetchItems from './utils/fetch-items';
 import fetchTypes from './utils/fetch-types';
@@ -340,8 +340,16 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 currentWorksheet = XLSX.utils.book_new();
 
                 XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
-                // sanitize rows to avoid Excel cell text length limit (32767 chars)
-                XLSX.utils.sheet_add_json(currentWorksheet, sanitizeRows(currentItems), { origin: 'A2', skipHeader: true });
+                // convert rows (arrays) to objects keyed by header labels and sanitize
+                {
+                  const headerArray = Array.isArray(currentKeys) && currentKeys.length > 0 ? currentKeys[0] as string[] : [];
+                  const rowsAsObjects = currentItems.map((row: unknown[]) => {
+                    const obj: Record<string, unknown> = {};
+                    headerArray.forEach((h, idx) => { obj[h] = row[idx] !== undefined ? row[idx] : ''; });
+                    return sanitizeObjectRow(obj);
+                  });
+                  XLSX.utils.sheet_add_json(currentWorksheet, rowsAsObjects, { origin: 'A2', skipHeader: true });
+                }
     
                 if (currentWorksheet) {
                   const sheetName = normalizeSheetName(currentType, workbook);
@@ -358,8 +366,16 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 currentWorksheet = XLSX.utils.book_new();
     
                 XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
-                // sanitize rows to avoid Excel cell text length limit (32767 chars)
-                XLSX.utils.sheet_add_json(currentWorksheet, sanitizeRows(currentItems), { origin: 'A2', skipHeader: true });
+                // convert rows (arrays) to objects keyed by header labels and sanitize
+                {
+                  const headerArray = Array.isArray(currentKeys) && currentKeys.length > 0 ? currentKeys[0] as string[] : [];
+                  const rowsAsObjects = currentItems.map((row: unknown[]) => {
+                    const obj: Record<string, unknown> = {};
+                    headerArray.forEach((h, idx) => { obj[h] = row[idx] !== undefined ? row[idx] : ''; });
+                    return sanitizeObjectRow(obj);
+                  });
+                  XLSX.utils.sheet_add_json(currentWorksheet, rowsAsObjects, { origin: 'A2', skipHeader: true });
+                }
     
                 if (currentWorksheet) {
                   const sheetName = normalizeSheetName(currentType, workbook);
@@ -381,8 +397,16 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 currentWorksheet = XLSX.utils.book_new();
     
                 XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
-                // sanitize rows to avoid Excel cell text length limit (32767 chars)
-                XLSX.utils.sheet_add_json(currentWorksheet, sanitizeRows(currentItems), { origin: 'A2', skipHeader: true });
+                // convert rows (arrays) to objects keyed by header labels and sanitize
+                {
+                  const headerArray = Array.isArray(currentKeys) && currentKeys.length > 0 ? currentKeys[0] as string[] : [];
+                  const rowsAsObjects = currentItems.map((row: unknown[]) => {
+                    const obj: Record<string, unknown> = {};
+                    headerArray.forEach((h, idx) => { obj[h] = row[idx] !== undefined ? row[idx] : ''; });
+                    return sanitizeObjectRow(obj);
+                  });
+                  XLSX.utils.sheet_add_json(currentWorksheet, rowsAsObjects, { origin: 'A2', skipHeader: true });
+                }
     
                 if (currentWorksheet) {
                   const sheetName = normalizeSheetName(data.items[i].system.type, workbook);
@@ -399,8 +423,16 @@ export default function RequestBuilder({ contextResponse, workbook }: RequestBui
                 currentWorksheet = XLSX.utils.book_new();
     
                 XLSX.utils.sheet_add_aoa(currentWorksheet, currentKeys);
-                // sanitize rows to avoid Excel cell text length limit (32767 chars)
-                XLSX.utils.sheet_add_json(currentWorksheet, sanitizeRows(currentItems), { origin: 'A2', skipHeader: true });
+                // convert rows (arrays) to objects keyed by header labels and sanitize
+                {
+                  const headerArray = Array.isArray(currentKeys) && currentKeys.length > 0 ? currentKeys[0] as string[] : [];
+                  const rowsAsObjects = currentItems.map((row: unknown[]) => {
+                    const obj: Record<string, unknown> = {};
+                    headerArray.forEach((h, idx) => { obj[h] = row[idx] !== undefined ? row[idx] : ''; });
+                    return sanitizeObjectRow(obj);
+                  });
+                  XLSX.utils.sheet_add_json(currentWorksheet, rowsAsObjects, { origin: 'A2', skipHeader: true });
+                }
     
                 if (currentWorksheet) {
                   const sheetName = normalizeSheetName(currentType, workbook);
